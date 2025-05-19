@@ -1,45 +1,22 @@
-// Add a log entry (normal or exfiltrated)
+// Function to add a log entry (normal or exfiltrated)
 function addLogEntry(log, isExfiltrated = false) {
   const logsContainer = document.getElementById("logs");
   const logEntry = document.createElement("p");
-  if (isExfiltrated) {
-    logEntry.textContent = `[EXFILTRATED] ${log} | Timestamp: ${new Date().toLocaleString()}`;
-    logEntry.classList.add("exfiltrated");
-  } else {
-    logEntry.textContent = log;
-  }
+  logEntry.textContent = isExfiltrated
+    ? `[EXFILTRATED] ${log} | Timestamp: ${new Date().toLocaleString()}`
+    : log;
+
+  // Optional style to differentiate exfiltrated logs
+  if (isExfiltrated) logEntry.style.color = "red";
+
   logsContainer.insertBefore(logEntry, logsContainer.firstChild);
 
-  // Limit to max 10 logs
+  // Limit to last 10 logs
   if (logsContainer.children.length > 10) {
-    logsContainer.lastChild.remove();
+    logsContainer.removeChild(logsContainer.lastChild);
   }
 
   saveLogsToLocalStorage();
-}
-
-// Clear logs
-function clearLogs() {
-  const logsContainer = document.getElementById("logs");
-  logsContainer.innerHTML = "";
-  saveLogsToLocalStorage();
-  broadcastClearLogs();
-}
-
-// Download logs as text file
-function downloadLogs() {
-  const logsContainer = document.getElementById("logs");
-  let logsText = "";
-  // Combine all logs text (with indication for exfiltrated)
-  logsContainer.querySelectorAll("p").forEach(p => {
-    logsText += p.textContent + "\n";
-  });
-  const blob = new Blob([logsText], { type: "text/plain" });
-
-  const downloadLink = document.createElement("a");
-  downloadLink.href = URL.createObjectURL(blob);
-  downloadLink.download = "logs.txt";
-  downloadLink.click();
 }
 
 // Save logs to localStorage
@@ -48,49 +25,41 @@ function saveLogsToLocalStorage() {
   localStorage.setItem("logs", logsContainer.innerHTML);
 }
 
-// Retrieve logs from localStorage
+// Retrieve logs from localStorage on page load
 function retrieveLogsFromLocalStorage() {
   const logsContainer = document.getElementById("logs");
   const savedLogs = localStorage.getItem("logs");
-  if (savedLogs) {
-    logsContainer.innerHTML = savedLogs;
-  }
+  if (savedLogs) logsContainer.innerHTML = savedLogs;
 }
 
 // Get visitor IP
 async function getVisitorIP() {
   try {
-    const response = await fetch("https://api.ipify.org?format=json");
-    const data = await response.json();
+    const res = await fetch("https://api.ipify.org?format=json");
+    const data = await res.json();
     return data.ip;
-  } catch (e) {
-    console.error("Failed to get visitor IP:", e);
+  } catch {
     return "Unknown";
   }
 }
 
-// Random status code generator
+// Generate a random status code
 function getRandomStatusCode() {
-  const statusCodes = [200, 301, 404, 500];
-  return statusCodes[Math.floor(Math.random() * statusCodes.length)];
+  const codes = [200, 301, 404, 500];
+  return codes[Math.floor(Math.random() * codes.length)];
 }
 
-// Get Referrer IP (placeholder)
+// Return a hardcoded referrer IP (for demo)
 function getReferrerIP() {
-  return "192.168.0.1"; // Replace as needed
+  return "192.168.0.1";
 }
 
-// Log normal visit
+// Log a normal visit
 function logVisit() {
   getVisitorIP().then(ip => {
-    const log = `Status Code: ${getRandomStatusCode()} | Sender IP: ${ip} | Referrer IP: ${getReferrerIP()}`;
+    const log = `Status Code: ${getRandomStatusCode()} | Timestamp: ${new Date().toLocaleString()} | Sender IP: ${ip} | Referrer IP: ${getReferrerIP()}`;
     addLogEntry(log);
   });
-}
-
-// Broadcast clearing logs (placeholder for multi-client setups)
-function broadcastClearLogs() {
-  console.log("Broadcasting clear logs command");
 }
 
 // Log exfiltrated data
@@ -98,15 +67,33 @@ function logExfiltratedData(data) {
   addLogEntry(data, true);
 }
 
-// Event listeners
+// Clear all logs
+function clearLogs() {
+  document.getElementById("logs").innerHTML = "";
+  saveLogsToLocalStorage();
+}
+
+// Download logs to text file
+function downloadLogs() {
+  const text = Array.from(document.querySelectorAll("#logs p"))
+    .map(p => p.textContent)
+    .join("\n");
+  const blob = new Blob([text], { type: "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "logs.txt";
+  a.click();
+}
+
+// Setup event listeners
 window.addEventListener("load", () => {
   retrieveLogsFromLocalStorage();
   logVisit();
 
-  // Example: simulate exfiltration data after 3 seconds (remove or replace)
+  // Simulate example exfiltration log (you can replace this)
   setTimeout(() => {
-    logExfiltratedData('{"username":"admin","password":"123456"}');
-  }, 3000);
+    logExfiltratedData("username=admin&password=123456");
+  }, 2000);
 });
 
 document.getElementById("clearLogs").addEventListener("click", clearLogs);
