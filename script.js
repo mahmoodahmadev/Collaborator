@@ -1,4 +1,4 @@
-// Function to add a log entry (normal or exfiltrated)
+// Function to add a log entry
 function addLogEntry(log, isExfiltrated = false) {
   const logsContainer = document.getElementById("logs");
   const logEntry = document.createElement("p");
@@ -6,12 +6,11 @@ function addLogEntry(log, isExfiltrated = false) {
     ? `[EXFILTRATED] ${log} | Timestamp: ${new Date().toLocaleString()}`
     : log;
 
-  // Optional style to differentiate exfiltrated logs
   if (isExfiltrated) logEntry.style.color = "red";
 
   logsContainer.insertBefore(logEntry, logsContainer.firstChild);
 
-  // Limit to last 10 logs
+  // Keep only last 10 logs
   if (logsContainer.children.length > 10) {
     logsContainer.removeChild(logsContainer.lastChild);
   }
@@ -25,14 +24,13 @@ function saveLogsToLocalStorage() {
   localStorage.setItem("logs", logsContainer.innerHTML);
 }
 
-// Retrieve logs from localStorage on page load
+// Restore logs from localStorage on load
 function retrieveLogsFromLocalStorage() {
   const logsContainer = document.getElementById("logs");
-  const savedLogs = localStorage.getItem("logs");
-  if (savedLogs) logsContainer.innerHTML = savedLogs;
+  logsContainer.innerHTML = localStorage.getItem("logs") || "";
 }
 
-// Get visitor IP
+// Get public IP
 async function getVisitorIP() {
   try {
     const res = await fetch("https://api.ipify.org?format=json");
@@ -49,15 +47,11 @@ function getRandomStatusCode() {
   return codes[Math.floor(Math.random() * codes.length)];
 }
 
-// Return a hardcoded referrer IP (for demo)
-function getReferrerIP() {
-  return "192.168.0.1";
-}
-
-// Log a normal visit
+// Log normal visit with full URL
 function logVisit() {
   getVisitorIP().then(ip => {
-    const log = `Status Code: ${getRandomStatusCode()} | Timestamp: ${new Date().toLocaleString()} | Sender IP: ${ip} | Referrer IP: ${getReferrerIP()}`;
+    const fullURL = window.location.href;
+    const log = `Status Code: ${getRandomStatusCode()} | Timestamp: ${new Date().toLocaleString()} | Sender IP: ${ip} | URL: ${fullURL}`;
     addLogEntry(log);
   });
 }
@@ -67,13 +61,13 @@ function logExfiltratedData(data) {
   addLogEntry(data, true);
 }
 
-// Clear all logs
+// Clear logs
 function clearLogs() {
   document.getElementById("logs").innerHTML = "";
   saveLogsToLocalStorage();
 }
 
-// Download logs to text file
+// Download logs
 function downloadLogs() {
   const text = Array.from(document.querySelectorAll("#logs p"))
     .map(p => p.textContent)
@@ -85,16 +79,19 @@ function downloadLogs() {
   a.click();
 }
 
-// Setup event listeners
+// Init
 window.addEventListener("load", () => {
   retrieveLogsFromLocalStorage();
   logVisit();
 
-  // Simulate example exfiltration log (you can replace this)
-  setTimeout(() => {
-    logExfiltratedData("username=admin&password=123456");
-  }, 2000);
+  // Optional: Log example exfiltrated data (simulate)
+  const searchParams = window.location.search;
+  const path = window.location.pathname;
+  if (path !== "/" || searchParams) {
+    logExfiltratedData(`Path: ${path} | Query: ${searchParams}`);
+  }
 });
 
+// Event listeners
 document.getElementById("clearLogs").addEventListener("click", clearLogs);
 document.getElementById("downloadLogs").addEventListener("click", downloadLogs);
