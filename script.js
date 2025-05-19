@@ -1,97 +1,109 @@
 // Function to add a log entry
-function addLogEntry(log, isExfiltrated = false) {
+function addLogEntry(log) {
   const logsContainer = document.getElementById("logs");
   const logEntry = document.createElement("p");
-  logEntry.textContent = isExfiltrated
-    ? `[EXFILTRATED] ${log} | Timestamp: ${new Date().toLocaleString()}`
-    : log;
-
-  if (isExfiltrated) logEntry.style.color = "red";
-
+  logEntry.textContent = log;
   logsContainer.insertBefore(logEntry, logsContainer.firstChild);
 
-  // Keep only last 10 logs
+  // Limit to maximum 10 logs
   if (logsContainer.children.length > 10) {
-    logsContainer.removeChild(logsContainer.lastChild);
+    logsContainer.lastChild.remove();
   }
 
   saveLogsToLocalStorage();
 }
 
-// Save logs to localStorage
+// Function to clear logs
+function clearLogs() {
+  const logsContainer = document.getElementById("logs");
+  logsContainer.innerHTML = "";
+  saveLogsToLocalStorage();
+
+  // Broadcast message to all clients to clear logs
+  broadcastClearLogs();
+}
+
+// Function to download logs as a text file
+function downloadLogs() {
+  const logsContainer = document.getElementById("logs");
+  const logsText = logsContainer.innerText;
+  const blob = new Blob([logsText], { type: "text/plain" });
+
+  // Create a temporary anchor element
+  const downloadLink = document.createElement("a");
+  downloadLink.href = URL.createObjectURL(blob);
+  downloadLink.download = "logs.txt";
+  downloadLink.click();
+}
+
+// Function to save logs to local storage
 function saveLogsToLocalStorage() {
   const logsContainer = document.getElementById("logs");
-  localStorage.setItem("logs", logsContainer.innerHTML);
+  const logsText = logsContainer.innerHTML;
+  localStorage.setItem("logs", logsText);
 }
 
-// Restore logs from localStorage on load
+// Retrieve logs from local storage on page load
 function retrieveLogsFromLocalStorage() {
   const logsContainer = document.getElementById("logs");
-  logsContainer.innerHTML = localStorage.getItem("logs") || "";
+  const logsText = localStorage.getItem("logs");
+  logsContainer.innerHTML = logsText || "";
 }
 
-// Get public IP
+// Function to get the visitor's real IP address
 async function getVisitorIP() {
   try {
-    const res = await fetch("https://api.ipify.org?format=json");
-    const data = await res.json();
+    const response = await fetch("https://api.ipify.org?format=json");
+    const data = await response.json();
     return data.ip;
-  } catch {
+  } catch (error) {
+    console.error("Failed to retrieve the visitor's IP address:", error);
     return "Unknown";
   }
 }
 
-// Generate a random status code
+// Function to generate a random status code for demonstration purposes
 function getRandomStatusCode() {
-  const codes = [200, 301, 404, 500];
-  return codes[Math.floor(Math.random() * codes.length)];
+  const statusCodes = [200, 301, 404, 500];
+  const randomIndex = Math.floor(Math.random() * statusCodes.length);
+  return statusCodes[randomIndex];
 }
 
-// Log normal visit with full URL
+// Logging the visit
 function logVisit() {
-  getVisitorIP().then(ip => {
-    const fullURL = window.location.href;
-    const log = `Status Code: ${getRandomStatusCode()} | Timestamp: ${new Date().toLocaleString()} | Sender IP: ${ip} | URL: ${fullURL}`;
+  getVisitorIP().then(visitorIP => {
+    const log = `Status Code: ${getRandomStatusCode()} | Timestamp: ${new Date().toLocaleString()} | Sender IP: ${visitorIP} | Referrer IP: ${getReferrerIP()}`;
     addLogEntry(log);
   });
 }
 
-// Log exfiltrated data
-function logExfiltratedData(data) {
-  addLogEntry(data, true);
+// Function to get the referring IP address
+function getReferrerIP() {
+  // Replace this with your actual method of retrieving the referring IP address
+  return "192.168.0.1";
 }
 
-// Clear logs
-function clearLogs() {
-  document.getElementById("logs").innerHTML = "";
-  saveLogsToLocalStorage();
+// Broadcast message to all clients to clear logs
+function broadcastClearLogs() {
+  // Use your preferred method of clearing logs on all clients
+  // This depends on your specific setup and cannot be implemented solely on the client-side
+  console.log("Broadcasting message to clear logs on all clients");
 }
 
-// Download logs
-function downloadLogs() {
-  const text = Array.from(document.querySelectorAll("#logs p"))
-    .map(p => p.textContent)
-    .join("\n");
-  const blob = new Blob([text], { type: "text/plain" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "logs.txt";
-  a.click();
-}
-
-// Init
-window.addEventListener("load", () => {
-  retrieveLogsFromLocalStorage();
-  logVisit();
-
-  // Optional: Log example exfiltrated data (simulate)
-  const searchParams = window.location.search;
-  const path = window.location.pathname;
-  if (path !== "/" || searchParams) {
-    logExfiltratedData(`Path: ${path} | Query: ${searchParams}`);
-  }
+// Clear logs button event listener
+const clearLogsButton = document.getElementById("clearLogs");
+clearLogsButton.addEventListener("click", () => {
+  clearLogs();
 });
 
-// Event listeners
-document.getElementById("clearLogs").addEventListener("click", clearLogs);
-document.getElementById("downloadLogs").addEventListener("click", downloadLogs);
+// Download logs button event listener
+const downloadLogsButton = document.getElementById("downloadLogs");
+downloadLogsButton.addEventListener("click", () => {
+  downloadLogs();
+});
+
+// Retrieve logs from local storage on page load
+window.addEventListener("load", retrieveLogsFromLocalStorage);
+
+// Log visit when the page is loaded
+logVisit();
